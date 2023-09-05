@@ -1,0 +1,165 @@
+<html>
+<head>
+    <title>Test Task 2: WebSocket</title>
+    <style>
+        .column {
+            float: left;
+            width: 50%;
+        }
+    </style>
+    <script src="/webjars/sockjs-client/1.5.1/sockjs.min.js"></script>
+    <script src="/webjars/stomp-websocket/2.3.4/stomp.min.js"></script>
+    <script type="text/javascript">
+        let stompClient = null;
+
+        function connect() {
+            const socket = new SockJS("/test-task-endpoint");
+            stompClient = Stomp.over(socket);
+            stompClient.connect({}, function () {
+                setConnected(true);
+                stompClient.subscribe("/user/test-task-broker/messages", function (messageOutput) {
+                    showMessageOutput(messageOutput);
+                });
+            });
+        }
+
+        function disconnect() {
+            if (stompClient != null) {
+                stompClient.disconnect();
+            }
+            setConnected(false);
+        }
+
+        function sendMessage(message) {
+            stompClient.send("/test-task-app/command", {}, message)
+        }
+
+        function setConnected(connected) {
+            document.getElementById("connect").disabled = connected;
+            document.getElementById("disconnect").disabled = !connected;
+            document.getElementById("mainIOArea").style.visibility = connected ? "visible" : "hidden";
+            document.getElementById("form2input").value = "";
+            document.getElementById("jsonText").value = "";
+            document.getElementById("output").value = "";
+        }
+
+        function sendMessageTextarea() {
+            const text = document.getElementById("jsonText").value;
+            const userName = document.getElementById("userName").value;
+            try {
+                JSON.parse(text);
+                sendMessage(JSON.stringify({"text": text, "userName": userName}));
+            } catch (error) {
+                document.getElementById("output").value = "You have to write request body in JSON format";
+            }
+        }
+
+        function sendMessageForm() {
+            const command = document.getElementById("commands").value;
+            const form2Input = document.getElementById("form2input").value.trim();
+            const userName = document.getElementById("userName").value;
+            const form2InputIsEmpty = form2Input === "";
+            let textObj = {"command": command};
+            if (!form2InputIsEmpty) {
+                if (command === "fileInfo") {
+                    textObj.fileName = form2Input;
+                } else if (command === "addLog") {
+                    textObj.content = form2Input;
+                }
+            }
+            sendMessage(JSON.stringify({"text": JSON.stringify(textObj), "userName": userName}));
+        }
+
+        function showMessageOutput(messageOutput) {
+            const output = document.getElementById("output");
+            try {
+                let textToObj = JSON.parse(messageOutput.body);
+                output.value = JSON.stringify(textToObj, null, 3);
+            } catch (error) {
+                output.value = messageOutput.body;
+            }
+        }
+
+        function toggleTextarea() {
+            const commandTextarea = document.getElementById("commandTextarea");
+            const TextareaIsHidden = commandTextarea.style.display === "none";
+            commandTextarea.style.display = TextareaIsHidden ? "block" : "none";
+            document.getElementById("toggleCommandTextarea").innerHTML = TextareaIsHidden ? "Hide Textarea" : "Show Textarea";
+            document.getElementById("jsonText").value = "";
+        }
+
+        function toggleCommandForm() {
+            const commandForm = document.getElementById("commandForm");
+            const commandFormIsHidden = commandForm.style.display === "none";
+            commandForm.style.display = commandFormIsHidden ? "block" : "none";
+            document.getElementById("toggleCommandForm").innerHTML = commandFormIsHidden ? "Hide Form" : "Show Form"
+            document.getElementById("form2input").value = "";
+        }
+
+        function changeSelectItems() {
+            const selectedValue = document.getElementById("commands").value;
+            const form2Input = document.getElementById("form2input");
+            const form2InputLabel = form2Input.previousSibling.previousSibling;
+            document.getElementById("form2").style.display = (selectedValue === "logs") ? "none" : "block";
+            if (selectedValue === "addLog") {
+                form2InputLabel.innerHTML = "Content:";
+            } else if (selectedValue === "fileInfo") {
+                form2InputLabel.innerHTML = "File Name:";
+            }
+            form2Input.value = "";
+        }
+    </script>
+</head>
+<body onload="disconnect()" style="overflow-y: scroll;">
+<h1>Test Task 2</h1>
+<h3><a href="/">To Home Page</a></h3>
+<div>
+    <div>
+        <label for="userName">User Name:</label>
+        <input id="userName" type="text" placeholder="Choose a user name"/>
+    </div>
+    <br/>
+    <div>
+        <button id="connect" onclick="connect();">Connect</button>
+        <button id="disconnect" onclick="disconnect();" disabled>Disconnect</button>
+    </div>
+    <hr>
+    <div id="mainIOArea">
+        <div id="column1" class="column">
+            <button id="toggleCommandForm" onclick="toggleCommandForm();">Hide Form</button>
+            <div id="commandForm">
+                <h3>Select command to execute</h3>
+                <label for="commands">Command:</label>
+                <select id="commands" onchange="changeSelectItems();">
+                    <option value="fileInfo">Get File Information</option>
+                    <option value="addLog">Add Log</option>
+                    <option value="logs">Display All Logs</option>
+                </select>
+                <br/>
+                <br/>
+                <div id="form2">
+                    <label for="form2input">File Name:</label>
+                    <textarea id="form2input" name="filename" cols="30" rows="5"></textarea>
+                </div>
+                <br/>
+                <button id="sendMessageForm" onclick="sendMessageForm();">Execute Command</button>
+            </div>
+            <hr style="width: 98%;">
+            <button id="toggleCommandTextarea" onclick="toggleTextarea();">Show Textarea</button>
+            <div id="commandTextarea" style="display: none;">
+                <h3>Type out request body in form of JSON</h3>
+                <textarea id="jsonText" name="jsonCommand" cols="90" rows="20"
+                          placeholder="Type out request body in form of JSON"></textarea>
+                <br/>
+                <br/>
+                <button id="sendMessageTextarea" onclick="sendMessageTextarea();">Send</button>
+            </div>
+        </div>
+        <div id="column2" class="column">
+            <h3>Output</h3>
+            <textarea disabled id="output" cols="90" rows="20"></textarea>
+        </div>
+    </div>
+</div>
+</body>
+</html>

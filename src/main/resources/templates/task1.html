@@ -1,0 +1,19 @@
+<html>
+<head>
+    <title>Test Task 1: File Upload Endpoint</title>
+</head>
+<body>
+<h1>Test Task 1</h1>
+<h3><a href="/">To Home Page</a></h3>
+<div>
+    <form method="post" th:action="@{/task1}" enctype="multipart/form-data">
+        <div>
+            <input type="file" name="file">
+        </div>
+        <br/>
+        <button type="submit">Upload File</button>
+    </form>
+    <span th:if="${message != null}" th:text="${message}"></span>
+</div>
+</body>
+</html>
